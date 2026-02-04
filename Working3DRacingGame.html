@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Working 3D Racing Game</title>
+<style>
+body{margin:0;overflow:hidden;background:black;}
+#hud{position:absolute;top:10px;left:10px;color:white;background:rgba(0,0,0,0.6);padding:10px;border-radius:8px;font-family:Arial;}
+</style>
+</head>
+<body>
+<div id="hud">Speed: 0</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<script>
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const sun = new THREE.DirectionalLight(0xffffff,1);
+sun.position.set(10,20,10);
+scene.add(sun);
+
+// Ground
+const groundGeo = new THREE.PlaneGeometry(300,300);
+const groundMat = new THREE.MeshStandardMaterial({color:0x2ecc71});
+const ground = new THREE.Mesh(groundGeo,groundMat);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+// Road
+const roadGeo = new THREE.PlaneGeometry(300,30);
+const roadMat = new THREE.MeshStandardMaterial({color:0x333333});
+const road = new THREE.Mesh(roadGeo,roadMat);
+road.rotation.x = -Math.PI/2;
+road.position.y = 0.01;
+scene.add(road);
+
+// Car (No external model = 100% works online)
+const car = new THREE.Group();
+
+const bodyGeo = new THREE.BoxGeometry(2,0.6,4);
+const bodyMat = new THREE.MeshStandardMaterial({color:0xff0000});
+const body = new THREE.Mesh(bodyGeo,bodyMat);
+body.position.y = 0.5;
+car.add(body);
+
+const topGeo = new THREE.BoxGeometry(1.5,0.6,2);
+const topMat = new THREE.MeshStandardMaterial({color:0xaa0000});
+const top = new THREE.Mesh(topGeo,topMat);
+top.position.set(0,0.9,-0.3);
+car.add(top);
+
+car.position.y = 0.3;
+scene.add(car);
+
+camera.position.set(0,5,10);
+
+// Controls
+const keys = {};
+window.addEventListener('keydown',e=>keys[e.key]=true);
+window.addEventListener('keyup',e=>keys[e.key]=false);
+
+let speed = 0;
+const maxSpeed = 1.5;
+const accel = 0.03;
+const turnSpeed = 0.04;
+
+function animate(){
+ requestAnimationFrame(animate);
+
+ if(keys['w']) speed += accel;
+ if(keys['s']) speed -= accel;
+
+ speed *= 0.98;
+ speed = Math.max(-0.6, Math.min(maxSpeed,speed));
+
+ if(keys['a']) car.rotation.y += turnSpeed * speed;
+ if(keys['d']) car.rotation.y -= turnSpeed * speed;
+
+ car.position.x += Math.sin(car.rotation.y)*speed;
+ car.position.z += Math.cos(car.rotation.y)*speed;
+
+ camera.position.x = car.position.x - Math.sin(car.rotation.y)*8;
+ camera.position.z = car.position.z - Math.cos(car.rotation.y)*8;
+ camera.position.y = 5;
+ camera.lookAt(car.position);
+
+ document.getElementById('hud').innerText = `Speed: ${speed.toFixed(2)}`;
+
+ renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize',()=>{
+ camera.aspect = window.innerWidth/window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>
