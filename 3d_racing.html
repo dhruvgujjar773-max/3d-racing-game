@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Real 3D Car Racing Game (3D Model)</title>
+<style>
+body { margin:0; overflow:hidden; background:black; }
+#hud{
+ position:absolute; top:10px; left:10px; color:white;
+ background:rgba(0,0,0,0.6); padding:12px; border-radius:10px;
+ font-family:Arial;
+}
+</style>
+</head>
+<body>
+<div id="hud">Speed: 0 | Lap: 1</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const sun = new THREE.DirectionalLight(0xffffff,1);
+sun.position.set(10,20,10);
+scene.add(sun);
+
+// Track
+const trackGeo = new THREE.PlaneGeometry(200, 40);
+const trackMat = new THREE.MeshStandardMaterial({color:0x333333});
+const track = new THREE.Mesh(trackGeo, trackMat);
+track.rotation.x = -Math.PI/2;
+scene.add(track);
+
+// Grass
+const grassGeo = new THREE.PlaneGeometry(200, 200);
+const grassMat = new THREE.MeshStandardMaterial({color:0x2ecc71});
+const grass = new THREE.Mesh(grassGeo, grassMat);
+grass.rotation.x = -Math.PI/2;
+grass.position.y = -0.01;
+scene.add(grass);
+
+// 3D Car Model
+let car;
+const loader = new THREE.GLTFLoader();
+loader.load('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/VC/glTF/VC.gltf', function(gltf){
+ car = gltf.scene;
+ car.scale.set(0.4,0.4,0.4);
+ car.position.y = 0.2;
+ scene.add(car);
+}, undefined, function(error){
+ console.error(error);
+});
+
+// Camera position
+camera.position.set(0,5,10);
+
+// Controls
+const keys = {};
+window.addEventListener('keydown',e=>keys[e.key]=true);
+window.addEventListener('keyup',e=>keys[e.key]=false);
+
+let speed = 0;
+let maxSpeed = 1.5;
+let accel = 0.03;
+let turnSpeed = 0.04;
+let lap = 1;
+
+function animate(){
+ requestAnimationFrame(animate);
+
+ if(!car) return renderer.render(scene,camera);
+
+ // Acceleration
+ if(keys['w']) speed += accel;
+ if(keys['s']) speed -= accel;
+
+ // Friction
+ speed *= 0.98;
+
+ // Clamp speed
+ speed = Math.max(-0.6, Math.min(maxSpeed, speed));
+
+ // Turning
+ if(keys['a']) car.rotation.y += turnSpeed * speed;
+ if(keys['d']) car.rotation.y -= turnSpeed * speed;
+
+ // Move forward
+ car.position.x += Math.sin(car.rotation.y) * speed;
+ car.position.z += Math.cos(car.rotation.y) * speed;
+
+ // Track limits
+ if(Math.abs(car.position.x) > 18){ speed *= 0.7; }
+
+ // Camera follow
+ camera.position.x = car.position.x - Math.sin(car.rotation.y)*8;
+ camera.position.z = car.position.z - Math.cos(car.rotation.y)*8;
+ camera.position.y = 5;
+ camera.lookAt(car.position);
+
+ document.getElementById('hud').innerText = `Speed: ${speed.toFixed(2)} | Lap: ${lap}`;
+
+ renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize',()=>{
+ camera.aspect = window.innerWidth/window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
